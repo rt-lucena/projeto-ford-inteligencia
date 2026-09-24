@@ -1,3 +1,4 @@
+# app/core/config.py
 import os
 from pathlib import Path
 
@@ -19,18 +20,17 @@ class Settings:
     # Database
     DATABASE_URL: str = f"sqlite:///{BASE_DIR / 'fichas.db'}"
 
-    # Groq
-    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    # Ollama (LLM local)
+    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
     # 📁 Caminhos para Scrapy e YouTube
-    SCRAPY_SETTINGS_MODULE: str = "app.scraping.settings"  # Import path
+    SCRAPY_SETTINGS_MODULE: str = "app.scraping.settings"
     DATA_RAW_DIR: Path = BASE_DIR / "data" / "raw"
 
     @property
     def YOUTUBE_CLIENT_CONFIG(self) -> dict:
         """
-        Gera a estrutura do OAuth Client Secrets dinamicamente a partir do .env
-        substituindo a necessidade do secret_file.json.
+        Gera a estrutura do OAuth Client Secrets dinamicamente a partir do .env.
         """
         return {
             "installed": {
