@@ -51,6 +51,7 @@ export default function Login() {
         setErro(t('login.erro_credenciais'))
       }
     } catch (error) {
+      console.error('Falha no login:', error)
       setErro(t('login.erro_credenciais'))
     } finally {
       setLoading(false)
