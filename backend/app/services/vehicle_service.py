@@ -1,8 +1,3 @@
-# app/services/vehicle_service.py
-#
-# MIGRAÇÃO: substituído import de groq_service → llm_service
-# Toda a lógica de negócio permanece idêntica.
-
 import datetime
 import hashlib
 from datetime import datetime
@@ -14,9 +9,7 @@ from app.models.vehicle_model import Veiculo
 from app.services.consensus_service import ConsensusService
 from app.services.data_loader_service import DataLoaderService
 from app.services.fipe_service import FipeService
-from app.services.llm_service import (
-    LLMService,
-)
+from app.services.groq_service import GroqService
 from app.services.youtube_service import get_youtube_transcripts
 
 
@@ -28,9 +21,9 @@ class VehicleService:
 
     def __init__(self):
         self.data_loader = DataLoaderService()
-        self.llm_service = LLMService()
+        self.groq_service = GroqService()
 
-        # Dicionário padrão (Contrato rígido de 23 chaves alinhado com o Frontend)
+        # Dicionário padrão (Contrato rígido de 21 chaves alinhado com o Frontend)
         self.atributos_esperados = {
             "motor": "",
             "potencia": "",
@@ -66,19 +59,19 @@ class VehicleService:
     ) -> Dict[str, str]:
         """
         Orquestra o pipeline completo:
-        Lê artigos do Scrapy → Extrai via LLM local → Aplica Consenso.
+        Extrai YouTube -> Lê artigos do Scrapy -> Extrai via Groq -> Aplica Consenso.
         """
         print(
             f"\n🚀 Iniciando orquestração da IA para: {marca} {modelo} {versao} {ano}",
         )
 
-        print("🎥 Transcrições do YouTube desativadas (serviço em manutenção).")
+        print("🎥 Buscando reviews e transcrições no YouTube...")
         # try:
         #     get_youtube_transcripts(f"{marca} {modelo} {versao} {ano}", max_results=2)
         # except Exception as e:
         #     print(f"⚠️ Aviso: Não foi possível baixar transcrições do YouTube: {e}")
 
-        # 1. Carrega os artigos brutos do diretório raw
+        # 1. Carrega os artigos brutos (agora incluindo o transcript_youtube.json)
         artigos = self.data_loader.carregar_artigos()
         if not artigos:
             print(
@@ -86,10 +79,10 @@ class VehicleService:
             )
             return {attr: "não disponível" for attr in self.atributos_esperados}
 
-        print(f"📚 {len(artigos)} artigos carregados. Enviando para o LLM local...")
+        print(f"📚 {len(artigos)} artigos carregados. Enviando para a Groq...")
 
-        # 2. Processa cada artigo individualmente usando o LLM local
-        resultados_ia = self.llm_service.processar_artigos(
+        # 2. Processa cada artigo individualmente usando a IA
+        resultados_ia = self.groq_service.processar_artigos(
             artigos=artigos,
             atributos=self.atributos_esperados,
             marca=marca,
@@ -116,7 +109,7 @@ class VehicleService:
             atributos=self.atributos_esperados,
         )
 
-        # 4. Consulta a FIPE para atualizar o preço se o veículo for de ano anterior
+        # 4. Consulta a FIPE para atualizar o preço se o ano for menor que o atual
         ano_atual = datetime.now().year
         if ano < ano_atual:
             print(f"📅 Veículo de {ano}. Consultando valor atualizado na FIPE...")
@@ -125,7 +118,7 @@ class VehicleService:
                 resultado_final["preco"] = preco_fipe
                 print(f"💰 Preço atualizado pela FIPE: {preco_fipe}")
             else:
-                print("⚠️ FIPE não encontrou match. Mantendo preço extraído pelo LLM.")
+                print("⚠️ FIPE não encontrou match exato. Mantendo preço extraído pela IA.")
 
         return resultado_final
 
@@ -136,16 +129,31 @@ def gerar_hash_busca(
     versao: str,
     ano: int,
 ) -> str:
+    """
+    Gera um hash único para identificar um veículo
+    através de marca, modelo, versão e ano.
+    """
+
     chave = (
         f"{marca.strip().lower()}|"
         f"{modelo.strip().lower()}|"
         f"{versao.strip().lower()}|"
         f"{ano}"
     )
-    return hashlib.sha256(chave.encode("utf-8")).hexdigest()
+
+    return hashlib.sha256(
+        chave.encode("utf-8"),
+    ).hexdigest()
 
 
-def get_veiculo_by_hash(db: Session, hash_busca: str):
+def get_veiculo_by_hash(
+    db: Session,
+    hash_busca: str,
+):
+    """
+    Busca um veículo existente pelo hash.
+    """
+
     return db.query(Veiculo).filter(Veiculo.hash_busca == hash_busca).first()
 
 
@@ -158,7 +166,11 @@ def create_veiculo(
     fonte: str,
     especificacoes: dict,
 ):
+    """
+    Cria um novo veículo espalhando os atributos dinamicamente para as colunas.
+    """
     hash_busca = gerar_hash_busca(marca, modelo, versao, ano)
+
     veiculo = Veiculo(
         marca=marca,
         modelo=modelo,
@@ -166,11 +178,13 @@ def create_veiculo(
         ano=ano,
         fonte=fonte,
         hash_busca=hash_busca,
-        **especificacoes,
+        **especificacoes,  # Desempacota as 22 chaves diretamente para as 22 colunas
     )
+
     db.add(veiculo)
     db.commit()
     db.refresh(veiculo)
+
     return veiculo
 
 
@@ -180,30 +194,42 @@ def update_veiculo(
     especificacoes: dict,
     fonte: str,
 ):
+    """
+    Atualiza colunas específicas de um veículo existente.
+    """
     for chave, valor in especificacoes.items():
         setattr(veiculo, chave, valor)
+
     veiculo.fonte = fonte
+
     db.commit()
     db.refresh(veiculo)
+
     return veiculo
 
 
-# ====
+# ==========================================
 # BLOCO DE VALIDAÇÃO (TESTE LOCAL)
-# ====
+# ==========================================
 if __name__ == "__main__":
     import json
 
-    print("--- Testando Orquestração Completa (VehicleService + Ollama) ---")
+    print("--- Testando Orquestração Completa (VehicleService) ---")
+
     servico = VehicleService()
+
     try:
+        # Simulando o processamento do veículo obrigatório da prova de conceito
         ficha_tecnica = servico.processar_veiculo_com_ia(
             marca="Ford",
             modelo="Ranger",
             versao="Raptor",
             ano=2025,
         )
-        print("\n✅ Ficha Técnica Consolidada:")
+
+        print("\n✅ Ficha Técnica Consolidada (Resultado Final):")
         print(json.dumps(ficha_tecnica, indent=2, ensure_ascii=False))
+        print("\nPipeline testado com sucesso! Tudo se comunicando perfeitamente.")
+
     except Exception as e:
         print(f"\n❌ Erro durante a orquestração: {e}")

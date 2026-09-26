@@ -20,8 +20,8 @@ class Settings:
     # Database
     DATABASE_URL: str = f"sqlite:///{BASE_DIR / 'fichas.db'}"
 
-    # Ollama (LLM local)
-    OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    # Groq
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 
     # 📁 Caminhos para Scrapy e YouTube
     SCRAPY_SETTINGS_MODULE: str = "app.scraping.settings"
