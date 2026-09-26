@@ -31,6 +31,7 @@ function StatCard({ label, valor, unidade }) {
 
   useEffect(() => {
     const alvo = parseFloat(String(valor).replace(',', '.'))
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fallback síncrono quando `valor` não é numérico
     if (Number.isNaN(alvo)) { setExibido(valor); return }
     const decimais = (String(valor).split(/[.,]/)[1] || '').length
     const duracao = 900

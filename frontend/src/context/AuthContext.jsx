@@ -1,8 +1,7 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser, fetchUserProfile } from '../api';
-
-const AuthContext = createContext(null);
+import { AuthContext } from './useAuth'
 
 const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem('token'));
@@ -44,8 +43,4 @@ const AuthProvider = ({ children }) => {
     );
 };
 
-function useAuth() {
-  return useContext(AuthContext)
-}
-
-export {AuthProvider, AuthContext, useAuth}
+export { AuthProvider }

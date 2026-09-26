@@ -50,6 +50,7 @@ export default function IAAoVivo({ marca, modelo, versao, ano, totalAtributos, c
   useEffect(() => {
     if (!concluido) return
     timersRef.current.forEach(id => { clearTimeout(id); clearInterval(id) })
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sincroniza com a prop `concluido`, não é loop de estado
     setStage(5)
     setLogs(prev => {
       const jaMostrados = new Set(prev.map(l => l.t))

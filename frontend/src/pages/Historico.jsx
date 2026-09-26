@@ -29,12 +29,8 @@ function tituloItem(item) {
 
 export default function Historico() {
   const { t } = useTranslation()
-  const [historico, setHistorico] = useState([])
+  const [historico, setHistorico] = useState(() => obterHistorico())
   const navigate = useNavigate()
-
-  useEffect(() => {
-    setHistorico(obterHistorico())
-  }, [])
 
   function remover(id) {
     setHistorico(removerDoHistorico(id))
