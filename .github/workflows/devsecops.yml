@@ -19,6 +19,7 @@ jobs:
   backend-quality:
     name: Backend - validação Python
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,6 +42,7 @@ jobs:
   frontend-quality:
     name: Frontend - lint e build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -75,6 +77,7 @@ jobs:
   sast:
     name: SAST - Semgrep
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -101,6 +104,7 @@ jobs:
   sca-python:
     name: SCA - Python (pip-audit)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -122,6 +126,7 @@ jobs:
   sca-frontend:
     name: SCA - Frontend (npm audit)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -146,9 +151,24 @@ jobs:
         working-directory: frontend
         run: npm audit --audit-level=high
 
+  dependency-review:
+    name: SCA - Dependency Review (diff da PR)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Revisar dependências novas na PR
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+
   secret-scanning:
     name: Secret Scanning - Gitleaks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout completo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -157,7 +177,7 @@ jobs:
           persist-credentials: false
 
       - name: Executar Gitleaks
-        uses: gitleaks/gitleaks-action@v3
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_COMMENTS: 'false'
@@ -167,6 +187,7 @@ jobs:
   security-gate:
     name: Gate de Segurança
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs:
       - backend-quality
       - frontend-quality
@@ -181,6 +202,7 @@ jobs:
   deploy-simulated:
     name: Deploy - simulação acadêmica
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: security-gate
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     steps:
