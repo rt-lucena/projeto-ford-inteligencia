@@ -6,8 +6,7 @@ import ssl
 import subprocess
 from pathlib import Path
 
-# 🔥 Bypass global de SSL (Garante funcionamento na rede da faculdade)
-ssl._create_default_https_context = ssl._create_unverified_context
+ssl._create_default_https_context = ssl.create_default_context
 
 FILE_PATH = Path(__file__).resolve()
 BACKEND_DIR = FILE_PATH.parent.parent.parent
