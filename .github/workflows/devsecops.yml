@@ -6,8 +6,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Princípio do menor privilégio para o GITHUB_TOKEN.
-# O workflow só precisa ler o repositório.
 permissions:
   contents: read
 
@@ -17,7 +15,7 @@ concurrency:
 
 jobs:
   backend-quality:
-    name: Backend - validação Python
+    name: Build · Backend Python
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -40,7 +38,7 @@ jobs:
         run: python -m compileall -q backend/app
 
   frontend-quality:
-    name: Frontend - lint e build
+    name: Build · Frontend (Lint & Build)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -55,9 +53,6 @@ jobs:
           cache-dependency-path: frontend/package.json
           package-manager-cache: true
 
-      # O projeto enviado não contém package-lock.json.
-      # Criamos um lock durante o CI para permitir npm ci/npm audit.
-      # Depois da primeira execução, recomenda-se versionar o package-lock.json.
       - name: Gerar lockfile do frontend
         working-directory: frontend
         run: npm install --package-lock-only --ignore-scripts
@@ -75,7 +70,7 @@ jobs:
         run: npm run build
 
   sast:
-    name: SAST - Semgrep
+    name: Security · SAST (Semgrep)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -102,7 +97,7 @@ jobs:
             .
 
   sca-python:
-    name: SCA - Python (pip-audit)
+    name: Security · SCA — Python Dependencies (pip-audit)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -124,7 +119,7 @@ jobs:
         run: pip-audit -r backend/requirements.txt
 
   sca-frontend:
-    name: SCA - Frontend (npm audit)
+    name: Security · SCA — Frontend Dependencies (npm audit)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -152,7 +147,7 @@ jobs:
         run: npm audit --audit-level=high
 
   dependency-review:
-    name: SCA - Dependency Review (diff da PR)
+    name: Security · Dependency Review (PR Diff)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: github.event_name == 'pull_request'
@@ -166,7 +161,7 @@ jobs:
           fail-on-severity: high
 
   secret-scanning:
-    name: Secret Scanning - Gitleaks
+    name: Security · Secret Scanning (Gitleaks)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -185,7 +180,7 @@ jobs:
           GITLEAKS_ENABLE_SUMMARY: 'true'
 
   security-gate:
-    name: Gate de Segurança
+    name: Security Gate
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs:
@@ -200,7 +195,7 @@ jobs:
         run: echo '✅ DevSecOps Gate aprovado. O sistema está apto para a etapa de deploy.'
 
   deploy-simulated:
-    name: Deploy - simulação acadêmica
+    name: Deploy · Simulated
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: security-gate
@@ -211,7 +206,3 @@ jobs:
           echo '🚀 DEPLOY SIMULADO'
           echo 'As validações de qualidade e segurança foram aprovadas.'
           echo 'Neste projeto acadêmico não há infraestrutura de produção conectada ao workflow.'
-
-# Segurança de container: não incluída neste workflow porque a estrutura atual do projeto
-# não possui Dockerfile/container. Se um container for criado no futuro, adicionar Trivy
-# nesta etapa antes do deploy.
