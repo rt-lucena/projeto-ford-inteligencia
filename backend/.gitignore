@@ -5,6 +5,7 @@ ENV/
 
 # Arquivos do Python
 __pycache__/
+.pytest_cache/
 *.pyc
 *.pyo
 

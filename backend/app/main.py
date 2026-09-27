@@ -55,4 +55,3 @@ app.include_router(auth_routes.router)
 app.include_router(history_routes.router)
 app.include_router(user_routes.router)
 app.include_router(vehicle_routes.router)
-# ... adicione vehicle_router e history_router depois

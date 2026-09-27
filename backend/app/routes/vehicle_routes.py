@@ -17,7 +17,6 @@ from app.services.vehicle_service import (
 from app.utils.helpers import limiter, logger
 
 router = APIRouter(prefix="/veiculos", tags=["Veículos"])
-ai_service = VehicleService()
 
 
 def _obter_ou_processar_veiculo(
@@ -53,6 +52,8 @@ def _obter_ou_processar_veiculo(
             )
 
         # 2. IA e Consenso
+        ai_service = VehicleService()
+        
         especs = ai_service.processar_veiculo_com_ia(
             marca=marca,
             modelo=modelo,
@@ -157,4 +158,4 @@ async def comparar_veiculos(
         bypass_cache,
     )
 
-    return VeiculoCompareResponse(veiculo_1=veiculo_1, veiculo_2=veiculo_2)
+    return VeiculoCompareResponse(veiculo1=veiculo_1, veiculo2=veiculo_2)

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.dependencies.auth_dependencies import get_current_active_user
+from app.dependencies.auth_dependencies import (get_current_active_user, get_current_admin_user)
 from app.models.user_model import User
 from app.schemas.history_schema import HistoricoCreate, HistoricoResponse
 from app.services.history_service import (
@@ -39,6 +39,12 @@ async def listar_meu_historico(
 
 
 @router.delete("/limpeza-antigos")
-async def limpar_historico_antigo(db: Session = Depends(get_db)):
+async def limpar_historico_antigo(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+):
     anonimize_old_history(db)
-    return {"message": "Registros antigos anonimizados com sucesso."}
+
+    return {
+        "message": "Registros antigos anonimizados com sucesso."
+    }
